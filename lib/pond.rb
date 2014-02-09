@@ -51,7 +51,7 @@ class Pond
           if _size >= @max_size
             @cv.wait(@mutex, time_left)
           else
-            object = @block.call
+            object = @block
           end
         else
           if @collection == :queue
@@ -67,12 +67,17 @@ class Pond
       break if object
     end
 
+    if object == @block
+      object = @block.call
+      @allocated[Thread.current] = object
+    end
+
     yield object
   ensure
     if object
       @mutex.synchronize do
         @allocated.delete(Thread.current)
-        @available << object
+        @available << object unless object == @block
         @cv.signal
       end
     end

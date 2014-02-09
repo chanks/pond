@@ -230,4 +230,64 @@ describe Pond, "#checkout" do
     pond.allocated.should == {}
     pond.available.should == [1]
   end
+
+  it "should not be blocking if the object instantiation takes a long time" do
+    t = nil
+    q1, q2, q3 = Queue.new, Queue.new, Queue.new
+    pond = Pond.new do
+      q1.push nil
+      q2.pop
+    end
+
+    q2.push 1
+
+    pond.checkout do |i|
+      q1.pop
+      i.should == 1
+
+      t = Thread.new do
+        pond.checkout do |i|
+          i.should == 2
+        end
+      end
+
+      q1.pop
+    end
+
+    pond.checkout { |i| i.should == 1 }
+
+    q2.push 2
+    t.join
+  end
+
+  it "should not be left in a bad state if object instantiation fails" do
+    int = 0
+    error = false
+    pond = Pond.new do
+      raise "Instantiation Error!" if error
+      int += 1
+    end
+
+    pond.checkout { |i| i.should == 1 }
+
+    pond.size.should == 1
+    pond.allocated.should == {}
+    pond.available.should == [1]
+
+    error = true
+
+    pond.checkout do |i|
+      i.should == 1
+
+      t = Thread.new do
+        pond.checkout{}
+      end
+
+      proc { t.join }.should raise_error RuntimeError, "Instantiation Error!"
+    end
+
+    pond.size.should == 1
+    pond.allocated.should == {}
+    pond.available.should == [1]
+  end
 end
