@@ -5,7 +5,7 @@ require 'pond/version'
 class Pond
   class Timeout < StandardError; end
 
-  attr_reader :allocated
+  attr_reader :allocated, :available
 
   def initialize(options = {}, &block)
     @timeout  = options[:timeout]      || 1.0

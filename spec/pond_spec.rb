@@ -12,20 +12,36 @@ describe Pond, "#checkout" do
     value.should == 'value'
   end
 
-  it "should instantiate objects as needed" do
+  it "should instantiate objects only as needed" do
     int  = 0
     pond = Pond.new { int += 1 }
 
     pond.size.should == 0
-    pond.checkout { |i| i.should == 1 }
+
+    pond.checkout do |i|
+      pond.available.should == []
+      pond.allocated.should == {Thread.current => 1}
+      i.should == 1
+    end
+
+    pond.available.should == [1]
+    pond.allocated.should == {}
     pond.size.should == 1
-    pond.checkout { |i| i.should == 1 }
+
+    pond.checkout do |i|
+      pond.available.should == []
+      pond.allocated.should == {Thread.current => 1}
+      i.should == 1
+    end
+
+    pond.available.should == [1]
+    pond.allocated.should == {}
     pond.size.should == 1
   end
 
   it "should not instantiate objects in excess of the specified maximum_size" do
-    object = Object.new
-    pond   = Pond.new(:maximum_size => 1){object}
+    object = nil
+    pond = Pond.new(:maximum_size => 1) { object = Object.new }
     object_ids = []
 
     threads = 20.times.map do
@@ -45,19 +61,29 @@ describe Pond, "#checkout" do
 
     t = Thread.new do
       pond.checkout do |i|
-        q1.push nil
         i.should == 1
+        q1.push nil
         q2.pop
       end
     end
 
     q1.pop
-    pond.size.should == 1
-    pond.checkout { |i| i.should == 2 }
-    pond.size.should == 2
-    q2.push nil
 
+    pond.size.should == 1
+    pond.allocated.should == {t => 1}
+    pond.available.should == []
+
+    pond.checkout { |i| i.should == 2 }
+
+    pond.size.should == 2
+    pond.allocated.should == {t => 1}
+    pond.available.should == [2]
+
+    q2.push nil
     t.join
+
+    pond.allocated.should == {}
+    pond.available.should == [2, 1]
   end
 
   it "should be re-entrant" do
@@ -159,5 +185,17 @@ describe Pond, "#checkout" do
 
     q2.push nil
     t.join
+  end
+
+  it "with a block that raises an error should check the object back in and propagate the error" do
+    pond = Pond.new { 1 }
+    proc do
+      pond.checkout do
+        raise "Blah!"
+      end
+    end.should raise_error RuntimeError, "Blah!"
+
+    pond.allocated.should == {}
+    pond.available.should == [1]
   end
 end
