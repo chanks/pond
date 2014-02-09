@@ -1,3 +1,3 @@
-module Pond
+class Pond
   VERSION = '0.0.1'
 end
