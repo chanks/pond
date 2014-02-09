@@ -12,8 +12,9 @@ class Pond
   end
 
   def initialize(options = {}, &block)
-    @timeout  = options[:timeout]      || 1.0
-    @max_size = options[:maximum_size] || 10
+    @timeout    = options[:timeout]      || 1.0
+    @max_size   = options[:maximum_size] || 10
+    @collection = options[:collection]   || :queue
 
     @block = block
     @mutex = Mutex.new
@@ -53,7 +54,11 @@ class Pond
             object = @block.call
           end
         else
-          object = @available.shift
+          if @collection == :queue
+            object = @available.shift
+          elsif @collection == :stack
+            object = @available.pop
+          end
         end
 
         @allocated[Thread.current] = object if object
