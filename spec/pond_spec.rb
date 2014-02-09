@@ -141,4 +141,23 @@ describe Pond, "#checkout" do
     pond.size.should == 4
     results.should == (1..4).cycle(4).to_a
   end
+
+  it "should raise a timeout error if it takes too long to return an object" do
+    pond = Pond.new(:timeout => 0.01, :maximum_size => 1){1}
+
+    q1, q2 = Queue.new, Queue.new
+    t = Thread.new do
+      pond.checkout do
+        q1.push nil
+        q2.pop
+      end
+    end
+
+    q1.pop
+
+    proc{pond.checkout{}}.should raise_error Pond::Timeout
+
+    q2.push nil
+    t.join
+  end
 end
