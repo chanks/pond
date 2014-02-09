@@ -7,6 +7,10 @@ class Pond
 
   attr_reader :allocated, :available
 
+  def self.wrap(*args, &block)
+    Wrapper.new(new(*args, &block))
+  end
+
   def initialize(options = {}, &block)
     @timeout  = options[:timeout]      || 1.0
     @max_size = options[:maximum_size] || 10
@@ -71,5 +75,17 @@ class Pond
 
   def _size
     @available.size + @allocated.size
+  end
+
+  class Wrapper < BasicObject
+    attr_reader :pond
+
+    def initialize(pond)
+      @pond = pond
+    end
+
+    def method_missing(*args, &block)
+      @pond.checkout { |object| object.send(*args, &block) }
+    end
   end
 end
