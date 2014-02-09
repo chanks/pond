@@ -69,7 +69,7 @@ class Pond
 
     if object == @block
       object = @block.call
-      @allocated[Thread.current] = object
+      @mutex.synchronize { @allocated[Thread.current] = object }
     end
 
     yield object
