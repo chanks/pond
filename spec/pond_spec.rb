@@ -110,35 +110,44 @@ describe Pond, "#checkout" do
     threads.each &:join
   end
 
-  it "should treat the collection of objects as a queue, not a stack" do
-    int  = 0
-    pond = Pond.new { int += 1 }
-    results = []
+  10000.times do
+    it "should treat the collection of objects as a queue, not a stack" do
+      int  = 0
+      pond = Pond.new { int += 1 }
+      results = []
 
-    q  = Queue.new
-    m  = Mutex.new
-    cv = ConditionVariable.new
+      q  = Queue.new
+      m  = Mutex.new
+      cv = ConditionVariable.new
 
-    4.times do
-      threads = 4.times.map do
-        Thread.new do
-          m.synchronize do
-            pond.checkout do |i|
-              results << i
-              q.push nil
-              cv.wait(m)
+      4.times do
+        threads = 4.times.map do
+          Thread.new do
+            m.synchronize do
+              pond.checkout do |i|
+                results << i
+                q.push nil
+                cv.wait(m)
+              end
+              cv.signal
             end
-            cv.signal
           end
         end
+
+        4.times { q.pop }
+        cv.signal
+        threads.each(&:join)
       end
 
-      4.times { q.pop }
-      cv.signal
-      threads.each(&:join)
-    end
+      hash = pond.allocated
 
-    pond.size.should == 4
-    results.should == (1..4).cycle(4).to_a
+      unless hash.empty?
+        require 'pry'
+        binding.pry
+      end
+
+      pond.size.should == 4
+      results.should == (1..4).cycle(4).to_a
+    end
   end
 end
