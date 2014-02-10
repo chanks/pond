@@ -1,4 +1,4 @@
-require 'thread'
+require 'monitor'
 
 require 'pond/version'
 
@@ -16,16 +16,16 @@ class Pond
     @max_size   = options[:maximum_size] || 10
     @collection = options[:collection]   || :queue
 
-    @block = block
-    @mutex = Mutex.new
-    @cv    = ConditionVariable.new
+    @block   = block
+    @monitor = Monitor.new
+    @cv      = Monitor::ConditionVariable.new(@monitor)
 
     @available = []
     @allocated = {}
   end
 
   def checkout(&block)
-    if object = @mutex.synchronize { @allocated[Thread.current] }
+    if object = sync { @allocated[Thread.current] }
       yield object
     else
       _checkout(&block)
@@ -33,7 +33,7 @@ class Pond
   end
 
   def size
-    @mutex.synchronize { _size }
+    sync { @available.size + @allocated.size }
   end
 
   private
@@ -46,10 +46,10 @@ class Pond
       time_left = deadline - Time.now
       raise Timeout if time_left < 0
 
-      @mutex.synchronize do
+      sync do
         if @available.empty?
-          if _size >= @max_size
-            @cv.wait(@mutex, time_left)
+          if size >= @max_size
+            @cv.wait(time_left)
           else
             object = @block
           end
@@ -69,13 +69,13 @@ class Pond
 
     if object == @block
       object = @block.call
-      @mutex.synchronize { @allocated[Thread.current] = object }
+      sync { @allocated[Thread.current] = object }
     end
 
     yield object
   ensure
     if object
-      @mutex.synchronize do
+      sync do
         @allocated.delete(Thread.current)
         @available << object unless object == @block
         @cv.signal
@@ -83,8 +83,8 @@ class Pond
     end
   end
 
-  def _size
-    @available.size + @allocated.size
+  def sync(&block)
+    @monitor.synchronize(&block)
   end
 
   class Wrapper < BasicObject
