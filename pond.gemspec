@@ -4,13 +4,13 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'pond/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "pond"
+  spec.name          = 'pond'
   spec.version       = Pond::VERSION
   spec.authors       = ["Chris Hanks"]
   spec.email         = ["christopher.m.hanks@gmail.com"]
-  spec.description   = %q{TODO: Write a gem description}
-  spec.summary       = %q{TODO: Write a gem summary}
-  spec.homepage      = ''
+  spec.description   = %q{A simple, generic, thread-safe pool for connections or whatever else}
+  spec.summary       = %q{A simple, generic, thread-safe pool}
+  spec.homepage      = 'https://github.com/chanks/pond'
   spec.license       = 'MIT'
 
   spec.files         = `git ls-files`.split($/)
