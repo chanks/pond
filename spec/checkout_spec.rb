@@ -39,6 +39,12 @@ describe Pond, "#checkout" do
     pond.size.should == 1
   end
 
+  it "should eagerly instantiate objects if the option is given" do
+    int = 0
+    pond = Pond.new(:eager => true){int += 1}
+    pond.available.should == (1..10).to_a
+  end
+
   it "should not instantiate objects in excess of the specified maximum_size" do
     object = nil
     pond = Pond.new(:maximum_size => 1) { object = Object.new }

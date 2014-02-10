@@ -46,6 +46,7 @@ Options:
 * :maximum_size - The maximum number of objects/connections you want the pool to contain. The default is 10.
 * :timeout - When attempting to check out a connection but none are available, how many seconds to wait before raising an error. The default is 1.
 * :collection - How to manage the objects in the pool. The default is :queue, meaning that pond.checkout will yield the object that hasn't been used in the longest period of time. This is to prevent connections from becoming 'stale'. The other option is :stack, so checkout will yield the object that has most recently been returned to the pool. This would be preferable if you're using connections that have their own mechanisms for becoming idle in periods of low activity.
+* :eager - Set this to true to fill the pool with instantiated objects when it is created, similar to how `connection_pool` works.
 
 ## Contributing
 

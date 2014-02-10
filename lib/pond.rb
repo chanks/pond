@@ -20,7 +20,7 @@ class Pond
     @monitor = Monitor.new
     @cv      = Monitor::ConditionVariable.new(@monitor)
 
-    @available = []
+    @available = Array.new(options[:eager] ? @max_size : 0, &block)
     @allocated = {}
   end
 
