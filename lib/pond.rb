@@ -8,7 +8,7 @@ class Pond
   attr_reader :allocated, :available
 
   def self.wrap(*args, &block)
-    Wrapper.new(new(*args, &block))
+    Wrapper.new(*args, &block)
   end
 
   def initialize(options = {}, &block)
@@ -28,7 +28,7 @@ class Pond
     if object = current_object
       yield object
     else
-      reserve_object(&block)
+      checkout_object(&block)
     end
   end
 
@@ -38,7 +38,7 @@ class Pond
 
   private
 
-  def reserve_object
+  def checkout_object
     lock_object
     yield current_object
   ensure
@@ -58,6 +58,11 @@ class Pond
       end
     end
 
+    # We need to protect changes to @allocated and @available with the monitor
+    # so that #size always returns the correct value. But, we don't want to
+    # call the instantiation block while we have the lock, since it may take a
+    # long time to return. So, we set the checked-out object to the block as a
+    # signal that it needs to be called.
     set_current_object(@block.call) if current_object == @block
   end
 
@@ -101,8 +106,8 @@ class Pond
   class Wrapper < BasicObject
     attr_reader :pond
 
-    def initialize(pond)
-      @pond = pond
+    def initialize(*args, &block)
+      @pond = ::Pond.new(*args, &block)
     end
 
     def method_missing(*args, &block)
