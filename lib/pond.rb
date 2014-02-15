@@ -5,7 +5,7 @@ require 'pond/version'
 class Pond
   class Timeout < StandardError; end
 
-  attr_reader :allocated, :available
+  attr_reader :allocated, :available, :collection
 
   def self.wrap(*args, &block)
     Wrapper.new(*args, &block)
@@ -34,6 +34,10 @@ class Pond
 
   def size
     sync { @available.size + @allocated.size }
+  end
+
+  def collection=(type)
+    sync { @collection = type }
   end
 
   private
@@ -80,10 +84,10 @@ class Pond
   end
 
   def pop_object
-    case @collection
+    case collection
       when :queue then @available.shift
       when :stack then @available.pop
-      else raise "Bad value for Pond collection: #{@collection.inspect}"
+      else raise "Bad value for Pond collection: #{collection.inspect}"
     end
   end
 

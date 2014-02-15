@@ -296,4 +296,16 @@ describe Pond do
     pond.allocated.should == {}
     pond.available.should == [1]
   end
+
+  it "should have its collection type gettable and settable" do
+    pond = Pond.new { Object.new }
+    pond.collection.should == :queue
+    pond.collection = :stack
+    pond.collection.should == :stack
+
+    pond = Pond.new(:collection => :stack) { Object.new }
+    pond.collection.should == :stack
+    pond.collection = :queue
+    pond.collection.should == :queue
+  end
 end
