@@ -11,14 +11,16 @@ class Pond
     @monitor = Monitor.new
     @cv      = Monitor::ConditionVariable.new(@monitor)
 
-    @block    = block
-    @timeout  = options[:timeout] || 1.0
+    @block   = block
+    @timeout = options[:timeout] || 1.0
 
-    self.collection   = options[:collection]   || :queue
-    self.maximum_size = options[:maximum_size] || 10
+    maximum_size = options[:maximum_size] || 10
 
     @allocated = {}
     @available = Array.new(options[:eager] ? maximum_size : 0, &block)
+
+    self.collection   = options[:collection] || :queue
+    self.maximum_size = maximum_size
   end
 
   def checkout(&block)
@@ -38,9 +40,12 @@ class Pond
     sync { @collection = type }
   end
 
-  def maximum_size=(size)
-    raise "Bad value for Pond maximum_size: #{size.inspect}" unless Integer === size && size >= 0
-    sync { @maximum_size = size }
+  def maximum_size=(max)
+    raise "Bad value for Pond maximum_size: #{max.inspect}" unless Integer === max && max >= 0
+    sync do
+      @maximum_size = max
+      {} until size <= max || pop_object.nil?
+    end
   end
 
   private
@@ -75,7 +80,9 @@ class Pond
 
   def unlock_object
     sync do
-      if object = @allocated.delete(Thread.current) and object != @block
+      object = @allocated.delete(Thread.current)
+
+      if object && object != @block && size < maximum_size
         @available << object
         @cv.signal
       end
@@ -83,7 +90,7 @@ class Pond
   end
 
   def get_object(timeout)
-    pop_object || below_capacity? && @block || @cv.wait(timeout) && false
+    pop_object || size < maximum_size && @block || @cv.wait(timeout) && false
   end
 
   def pop_object
@@ -91,10 +98,6 @@ class Pond
     when :queue then @available.shift
     when :stack then @available.pop
     end
-  end
-
-  def below_capacity?
-    size < maximum_size
   end
 
   def current_object

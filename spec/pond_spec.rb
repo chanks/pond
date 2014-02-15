@@ -337,4 +337,48 @@ describe Pond do
 
     procs.each { |p| p.should raise_error RuntimeError, /Bad value for Pond maximum_size:/ }
   end
+
+  it "when the maximum_size is decreased should free available objects" do
+    int  = 0
+    pond = Pond.new(:eager => true) { int += 1 }
+
+    pond.available.should == (1..10).to_a
+    pond.maximum_size = 8
+    pond.available.should == (3..10).to_a
+    pond.maximum_size = 10
+    pond.available.should == (3..10).to_a
+    pond.maximum_size = 9
+    pond.available.should == (3..10).to_a
+  end
+
+  it "when the maximum_size is decreased should free available objects and checked-out objects upon return" do
+    int = 0
+    pond = Pond.new(:eager => true, :maximum_size => 2) { int += 1 }
+    pond.available.should == [1, 2]
+
+    q1, q2 = Queue.new, Queue.new
+    t = Thread.new do
+      pond.checkout do |i|
+        i.should == 1
+        q1.push nil
+        q2.pop
+      end
+    end
+
+    q1.pop
+
+    pond.maximum_size = 0
+    pond.maximum_size.should == 0
+
+    pond.size.should == 1
+    pond.available.should == []
+    pond.allocated.should == {t => 1}
+
+    q2.push nil
+    t.join
+
+    pond.size.should == 0
+    pond.available.should == []
+    pond.allocated.should == {}
+  end
 end
