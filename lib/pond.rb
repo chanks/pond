@@ -7,10 +7,6 @@ class Pond
 
   attr_reader :allocated, :available, :collection
 
-  def self.wrap(*args, &block)
-    Wrapper.new(*args, &block)
-  end
-
   def initialize(options = {}, &block)
     @monitor = Monitor.new
     @cv      = Monitor::ConditionVariable.new(@monitor)
@@ -106,6 +102,12 @@ class Pond
 
   def sync(&block)
     @monitor.synchronize(&block)
+  end
+
+  class << self
+    def wrap(*args, &block)
+      Wrapper.new(*args, &block)
+    end
   end
 
   class Wrapper < BasicObject
