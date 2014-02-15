@@ -12,13 +12,13 @@ class Pond
     @monitor = Monitor.new
     @cv      = Monitor::ConditionVariable.new(@monitor)
 
-    maximum_size = options[:maximum_size] || 10
+    maximum_size = options.fetch :maximum_size, 10
 
     @allocated = {}
     @available = Array.new(options[:eager] ? maximum_size : 0, &block)
 
-    self.timeout      = options[:timeout]    || 1
-    self.collection   = options[:collection] || :queue
+    self.timeout      = options.fetch :timeout, 1
+    self.collection   = options.fetch :collection, :queue
     self.maximum_size = maximum_size
   end
 

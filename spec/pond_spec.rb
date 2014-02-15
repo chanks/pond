@@ -310,6 +310,7 @@ describe Pond do
 
     procs = [
       proc{pond.collection = nil},
+      proc{Pond.new(:collection => nil) { Object.new }},
       proc{pond.collection = :blah},
       proc{Pond.new(:collection => :blah) { Object.new }}
     ]
@@ -330,6 +331,7 @@ describe Pond do
 
     procs = [
       proc{pond.timeout = nil},
+      proc{Pond.new(:timeout => nil) { Object.new }},
       proc{pond.timeout = :blah},
       proc{Pond.new(:timeout => :blah) { Object.new }}
     ]
@@ -349,6 +351,7 @@ describe Pond do
 
     procs = [
       proc{pond.maximum_size = nil},
+      proc{Pond.new(:maximum_size => nil) { Object.new }},
       proc{pond.maximum_size = :blah},
       proc{Pond.new(:maximum_size => :blah) { Object.new }},
       proc{pond.maximum_size = 4.0},
