@@ -12,16 +12,17 @@ class Pond
   end
 
   def initialize(options = {}, &block)
-    @timeout    = options[:timeout]      || 1.0
-    @max_size   = options[:maximum_size] || 10
-    @collection = options[:collection]   || :queue
-
-    @block   = block
     @monitor = Monitor.new
     @cv      = Monitor::ConditionVariable.new(@monitor)
 
-    @available = Array.new(options[:eager] ? @max_size : 0, &block)
+    @block    = block
+    @timeout  = options[:timeout]      || 1.0
+    @max_size = options[:maximum_size] || 10
+
     @allocated = {}
+    @available = Array.new(options[:eager] ? @max_size : 0, &block)
+
+    self.collection = options[:collection] || :queue
   end
 
   def checkout(&block)
@@ -37,6 +38,7 @@ class Pond
   end
 
   def collection=(type)
+    raise "Bad value for Pond collection: #{type.inspect}" unless [:stack, :queue].include?(type)
     sync { @collection = type }
   end
 
@@ -85,9 +87,8 @@ class Pond
 
   def pop_object
     case collection
-      when :queue then @available.shift
-      when :stack then @available.pop
-      else raise "Bad value for Pond collection: #{collection.inspect}"
+    when :queue then @available.shift
+    when :stack then @available.pop
     end
   end
 

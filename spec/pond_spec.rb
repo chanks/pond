@@ -307,5 +307,13 @@ describe Pond do
     pond.collection.should == :stack
     pond.collection = :queue
     pond.collection.should == :queue
+
+    proc do
+      pond.collection = :blah
+    end.should raise_error RuntimeError, /Bad value for Pond collection: :blah/
+
+    proc do
+      Pond.new(:collection => :blah) { Object.new }
+    end.should raise_error RuntimeError, /Bad value for Pond collection: :blah/
   end
 end
