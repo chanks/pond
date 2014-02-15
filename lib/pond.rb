@@ -5,20 +5,19 @@ require 'pond/version'
 class Pond
   class Timeout < StandardError; end
 
-  attr_reader :allocated, :available, :collection, :maximum_size
+  attr_reader :allocated, :available, :timeout, :collection, :maximum_size
 
   def initialize(options = {}, &block)
+    @block   = block
     @monitor = Monitor.new
     @cv      = Monitor::ConditionVariable.new(@monitor)
-
-    @block   = block
-    @timeout = options[:timeout] || 1.0
 
     maximum_size = options[:maximum_size] || 10
 
     @allocated = {}
     @available = Array.new(options[:eager] ? maximum_size : 0, &block)
 
+    self.timeout      = options[:timeout]    || 1
     self.collection   = options[:collection] || :queue
     self.maximum_size = maximum_size
   end
@@ -33,6 +32,11 @@ class Pond
 
   def size
     sync { @available.size + @allocated.size }
+  end
+
+  def timeout=(timeout)
+    raise "Bad value for Pond timeout: #{timeout.inspect}" unless Numeric === timeout && timeout >= 0
+    sync { @timeout = timeout }
   end
 
   def collection=(type)

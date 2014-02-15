@@ -317,6 +317,26 @@ describe Pond do
     procs.each { |p| p.should raise_error RuntimeError, /Bad value for Pond collection:/ }
   end
 
+  it "should have its timeout gettable and settable" do
+    pond = Pond.new { Object.new }
+    pond.timeout.should == 1
+    pond.timeout = 4
+    pond.timeout.should == 4
+
+    pond = Pond.new(:timeout => 3.7) { Object.new }
+    pond.timeout.should == 3.7
+    pond.timeout = 1.9
+    pond.timeout.should == 1.9
+
+    procs = [
+      proc{pond.timeout = nil},
+      proc{pond.timeout = :blah},
+      proc{Pond.new(:timeout => :blah) { Object.new }}
+    ]
+
+    procs.each { |p| p.should raise_error RuntimeError, /Bad value for Pond timeout:/ }
+  end
+
   it "should have its maximum_size gettable and settable" do
     pond = Pond.new { Object.new }
     pond.maximum_size.should == 10
