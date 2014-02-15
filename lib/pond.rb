@@ -5,20 +5,20 @@ require 'pond/version'
 class Pond
   class Timeout < StandardError; end
 
-  attr_reader :allocated, :available, :collection
+  attr_reader :allocated, :available, :collection, :maximum_size
 
   def initialize(options = {}, &block)
     @monitor = Monitor.new
     @cv      = Monitor::ConditionVariable.new(@monitor)
 
     @block    = block
-    @timeout  = options[:timeout]      || 1.0
-    @max_size = options[:maximum_size] || 10
+    @timeout  = options[:timeout] || 1.0
+
+    self.collection   = options[:collection]   || :queue
+    self.maximum_size = options[:maximum_size] || 10
 
     @allocated = {}
-    @available = Array.new(options[:eager] ? @max_size : 0, &block)
-
-    self.collection = options[:collection] || :queue
+    @available = Array.new(options[:eager] ? maximum_size : 0, &block)
   end
 
   def checkout(&block)
@@ -36,6 +36,11 @@ class Pond
   def collection=(type)
     raise "Bad value for Pond collection: #{type.inspect}" unless [:stack, :queue].include?(type)
     sync { @collection = type }
+  end
+
+  def maximum_size=(size)
+    raise "Bad value for Pond maximum_size: #{size.inspect}" unless Integer === size && size > 0
+    sync { @maximum_size = size }
   end
 
   private
@@ -89,7 +94,7 @@ class Pond
   end
 
   def below_capacity?
-    size < @max_size
+    size < maximum_size
   end
 
   def current_object

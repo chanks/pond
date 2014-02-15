@@ -308,12 +308,29 @@ describe Pond do
     pond.collection = :queue
     pond.collection.should == :queue
 
-    proc do
-      pond.collection = :blah
-    end.should raise_error RuntimeError, /Bad value for Pond collection: :blah/
+    procs = [
+      proc{pond.collection = nil},
+      proc{pond.collection = :blah},
+      proc{Pond.new(:collection => :blah) { Object.new }}
+    ]
 
-    proc do
-      Pond.new(:collection => :blah) { Object.new }
-    end.should raise_error RuntimeError, /Bad value for Pond collection: :blah/
+    procs.each { |p| p.should raise_error RuntimeError, /Bad value for Pond collection:/ }
+  end
+
+  it "should have its maximum_size gettable and settable" do
+    pond = Pond.new { Object.new }
+    pond.maximum_size.should == 10
+    pond.maximum_size = 7
+    pond.maximum_size.should == 7
+
+    procs = [
+      proc{pond.maximum_size = nil},
+      proc{pond.maximum_size = :blah},
+      proc{Pond.new(:maximum_size => :blah) { Object.new }},
+      proc{pond.maximum_size = 4.0},
+      proc{Pond.new(:maximum_size => 4.0) { Object.new }},
+    ]
+
+    procs.each { |p| p.should raise_error RuntimeError, /Bad value for Pond maximum_size:/ }
   end
 end
