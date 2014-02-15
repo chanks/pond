@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Pond, "#checkout" do
+describe Pond do
   it "should yield objects specified in the block" do
     pond = Pond.new { 1 }
     pond.checkout { |i| i.should == 1 }
