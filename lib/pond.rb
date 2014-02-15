@@ -39,7 +39,7 @@ class Pond
   end
 
   def maximum_size=(size)
-    raise "Bad value for Pond maximum_size: #{size.inspect}" unless Integer === size && size > 0
+    raise "Bad value for Pond maximum_size: #{size.inspect}" unless Integer === size && size >= 0
     sync { @maximum_size = size }
   end
 

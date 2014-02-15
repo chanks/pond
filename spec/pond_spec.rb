@@ -322,6 +322,10 @@ describe Pond do
     pond.maximum_size.should == 10
     pond.maximum_size = 7
     pond.maximum_size.should == 7
+    pond.maximum_size = 0
+    pond.maximum_size.should == 0
+    pond.maximum_size = 2
+    pond.maximum_size.should == 2
 
     procs = [
       proc{pond.maximum_size = nil},
