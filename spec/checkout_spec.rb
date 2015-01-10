@@ -289,5 +289,21 @@ describe Pond, "#checkout" do
     pond.size.should == 1
     pond.allocated.should == {}
     pond.available.should == [1]
+
+    error = false
+
+    pond.checkout do |i|
+      i.should == 1
+
+      t = Thread.new do
+        pond.checkout { |j| j.should == 2 }
+      end
+
+      t.join
+    end
+
+    pond.size.should == 2
+    pond.allocated.should == {}
+    pond.available.should == [2, 1]
   end
 end
