@@ -52,7 +52,22 @@ class Pond
     end
   end
 
+  def detach_on_checkin=(boolean)
+    raise "Can't set detach_on_checkin= when an object is not currently checked out" unless current_object
+    Thread.current[detach_on_checkin_key] = boolean
+  end
+
+  def detach_on_checkin
+    raise "Can't set detach_on_checkin= when an object is not currently checked out" unless current_object
+    result = Thread.current[detach_on_checkin_key]
+    result.nil? ? false : result
+  end
+
   private
+
+  def detach_on_checkin_key
+    @detach_on_checkin_key ||= :"detach_on_checkin_#{object_id}"
+  end
 
   def checkout_object
     lock_object
@@ -86,7 +101,7 @@ class Pond
     sync do
       object = @allocated.delete(Thread.current)
 
-      if object && object != @block && size < maximum_size
+      if object && object != @block && size < maximum_size && !Thread.current[detach_on_checkin_key]
         @available << object
         @cv.signal
       end
