@@ -20,6 +20,7 @@ class Pond
     self.timeout      = options.fetch :timeout, 1
     self.collection   = options.fetch :collection, :queue
     self.maximum_size = maximum_size
+    self.detach_if = lambda {|_| false}
   end
 
   def checkout(&block)
@@ -49,6 +50,15 @@ class Pond
     sync do
       @maximum_size = max
       {} until size <= max || pop_object.nil?
+    end
+  end
+
+  # Return true if the yielded object to block should not be returned to the pool
+  def detach_if=(block)
+    raise "Block must respond to #call" unless block.respond_to?(:call)
+
+    sync do
+      @detach_if = block
     end
   end
 
@@ -86,7 +96,7 @@ class Pond
     sync do
       object = @allocated.delete(Thread.current)
 
-      if object && object != @block && size < maximum_size
+      if object && object != @block && size < maximum_size && !@detach_if.call(object)
         @available << object
         @cv.signal
       end

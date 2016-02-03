@@ -50,6 +50,22 @@ Options:
 * :collection - How to manage the objects in the pool. The default is :queue, meaning that pond.checkout will yield the object that hasn't been used in the longest period of time. This is to prevent connections from becoming 'stale'. The alternative is :stack, so checkout will yield the object that has most recently been returned to the pool. This would be preferable if you're using connections that have their own logic for becoming idle in periods of low activity.
 * :eager - Set this to true to fill the pool with instantiated objects when it is created, similar to how `connection_pool` works.
 
+### Detaching Closed Connections ###
+
+```ruby
+  require 'pond'
+  require 'pg'
+
+  pond = Pond.new(:maximum_size => 5, :timeout => 0.5) {PG.connect({:dbname => "pond_test"})}
+
+  # Use #detach_if= to set a lambda (or any object that responds to #call)
+  #   to determine if the yielded object should be returned to the pool or
+  #   if it should be detached/dropped instead
+  # Return `true` if it should be dropped, `false` otherwise
+  pond.detach_if = lambda {|connection| connection.finished?}
+
+```
+
 ## Contributing
 
 I don't plan on adding too many more features to Pond, since I want to keep its design simple. If there's something you'd like to see it do, open an issue so we can discuss it before going to the trouble of creating a pull request.
