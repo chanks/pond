@@ -89,11 +89,23 @@ class Pond
   end
 
   def unlock_object
-    sync do
-      object = @allocated.delete(Thread.current)
+    object               = nil
+    detach_if            = nil
+    should_return_object = nil
 
-      if object && object != @block && size < maximum_size && !@detach_if.call(object)
-        @available << object
+    sync do
+      object               = current_object
+      detach_if            = self.detach_if
+      should_return_object = object && object != @block && size <= maximum_size
+    end
+
+    begin
+      should_return_object = !detach_if.call(object) if should_return_object
+      detach_check_finished = true
+    ensure
+      sync do
+        @available << object if detach_check_finished && should_return_object
+        @allocated.delete(Thread.current)
         @cv.signal
       end
     end

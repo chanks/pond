@@ -95,11 +95,6 @@ not. If the lambda returns truthy, the connection will be detached (and made
 available for garbage collection), and a new one will be instantiated to
 replace it as necessary (until the pool returns to its maximum size).
 
-Be aware that Pond's lock is held while detach_if is called, so make sure
-whatever it does is not too slow, since other threads won't be able to check
-in or out objects while it runs. This may be addressed in a future release of
-Pond.
-
 ## Contributing
 
 I don't plan on adding too many more features to Pond, since I want to keep

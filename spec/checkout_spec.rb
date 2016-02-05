@@ -233,7 +233,7 @@ describe Pond, "#checkout" do
 
   it "should not block other threads if the object instantiation takes a long time" do
     t = nil
-    q1, q2, q3 = Queue.new, Queue.new, Queue.new
+    q1, q2 = Queue.new, Queue.new
     pond = Pond.new do
       q1.push nil
       q2.pop
@@ -324,5 +324,74 @@ describe Pond, "#checkout" do
 
     # 2 should still be in the pond
     pond.available.should == [2]
+  end
+
+  it "should not block other threads if the detach_if block takes a long time" do
+    i = 0
+    q1, q2 = Queue.new, Queue.new
+
+    detach_if = proc do
+      q1.push nil
+      q2.pop
+    end
+
+    pond = Pond.new(:detach_if => detach_if) do
+      i += 1
+    end
+
+    t = Thread.new do
+      pond.checkout do |i|
+        i.should == 1
+      end
+    end
+
+    q1.pop
+    pond.available.should == []
+    pond.allocated.should == {t => 1}
+
+    # t is in the middle of invoking detach_if, we should still be able to
+    # instantiate new objects and check them out.
+    pond.checkout do |i|
+      i.should == 2
+      q2.push nil
+      q2.push nil
+    end
+
+    t.join
+  end
+
+  it "should not leave the Pond in a bad state if the detach_if block fails" do
+    i = 0
+    error = false
+    detach_if = proc do |obj|
+      raise "Detach Error!" if error
+      false
+    end
+
+    pond = Pond.new(:eager => true, :maximum_size => 5, :detach_if => detach_if) do
+      i += 1
+    end
+
+    pond.size.should == 5
+    pond.allocated.should == {}
+    pond.available.should == [1, 2, 3, 4, 5]
+
+    pond.checkout {}
+
+    pond.available.should == [2, 3, 4, 5, 1]
+
+    error = true
+
+    checked_out = nil
+    proc {
+      pond.checkout do |i|
+        checked_out = i
+      end
+    }.should raise_error RuntimeError, "Detach Error!"
+
+    checked_out.should == 2
+
+    pond.available.should == [3, 4, 5, 1]
+    pond.allocated.should == {}
   end
 end
