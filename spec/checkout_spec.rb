@@ -14,8 +14,7 @@ describe Pond, "#checkout" do
 
   it "removes the object from the pool if the detach_if block returns true" do
     int = 0
-    pond = Pond.new { int += 1 }
-    pond.detach_if = lambda { |obj| obj < 2 }
+    pond = Pond.new(detach_if: lambda { |obj| obj < 2 }) { int += 1 }
     pond.available.should == []
 
     # allocate 1, should not check back in

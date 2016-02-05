@@ -19,8 +19,8 @@ class Pond
 
     self.timeout      = options.fetch :timeout, 1
     self.collection   = options.fetch :collection, :queue
+    self.detach_if    = options.fetch :detach_if, lambda { |_| false }
     self.maximum_size = maximum_size
-    self.detach_if    = lambda { |_| false }
   end
 
   def checkout(&block)
