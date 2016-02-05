@@ -1,4 +1,4 @@
-### 0.2.0 (Unreleased)
+### 0.2.0 (2016-02-05)
 
 *   Add an option for a detach_if callable, which can contain logic to
     determine whether to remove an object from the pool.
