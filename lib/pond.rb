@@ -5,7 +5,7 @@ require 'pond/version'
 class Pond
   class Timeout < StandardError; end
 
-  attr_reader :allocated, :available, :timeout, :collection, :maximum_size
+  attr_reader :allocated, :available, :timeout, :collection, :maximum_size, :detach_if
 
   def initialize(options = {}, &block)
     @block   = block
@@ -20,7 +20,7 @@ class Pond
     self.timeout      = options.fetch :timeout, 1
     self.collection   = options.fetch :collection, :queue
     self.maximum_size = maximum_size
-    self.detach_if = lambda {|_| false}
+    self.detach_if    = lambda { |_| false }
   end
 
   def checkout(&block)
@@ -54,11 +54,11 @@ class Pond
   end
 
   # Return true if the yielded object to block should not be returned to the pool
-  def detach_if=(block)
-    raise "Block must respond to #call" unless block.respond_to?(:call)
+  def detach_if=(callable)
+    raise "Object given for Pond detach_if must respond to #call" unless callable.respond_to?(:call)
 
     sync do
-      @detach_if = block
+      @detach_if = callable
     end
   end
 
