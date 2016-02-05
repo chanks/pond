@@ -53,13 +53,9 @@ class Pond
     end
   end
 
-  # Return true if the yielded object to block should not be returned to the pool
   def detach_if=(callable)
     raise "Object given for Pond detach_if must respond to #call" unless callable.respond_to?(:call)
-
-    sync do
-      @detach_if = callable
-    end
+    sync { @detach_if = callable }
   end
 
   private
