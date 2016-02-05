@@ -12,25 +12,6 @@ describe Pond, "#checkout" do
     value.should == 'value'
   end
 
-  it "removes the object from the pool if the detach_if block returns true" do
-    int = 0
-    pond = Pond.new(detach_if: lambda { |obj| obj < 2 }) { int += 1 }
-    pond.available.should == []
-
-    # allocate 1, should not check back in
-    pond.checkout {|i| i.should == 1}
-    pond.available.should == []
-
-    # allocate 2, should be nothing else in the pond
-    pond.checkout do |i|
-      i.should == 2
-      pond.available.should == []
-    end
-
-    # 2 should still be in the pond
-    pond.available.should == [2]
-  end
-
   it "should instantiate objects when needed" do
     int  = 0
     pond = Pond.new { int += 1 }
@@ -324,5 +305,24 @@ describe Pond, "#checkout" do
     pond.size.should == 2
     pond.allocated.should == {}
     pond.available.should == [2, 1]
+  end
+
+  it "removes the object from the pool if the detach_if block returns true" do
+    int = 0
+    pond = Pond.new(detach_if: lambda { |obj| obj < 2 }) { int += 1 }
+    pond.available.should == []
+
+    # allocate 1, should not check back in
+    pond.checkout {|i| i.should == 1}
+    pond.available.should == []
+
+    # allocate 2, should be nothing else in the pond
+    pond.checkout do |i|
+      i.should == 2
+      pond.available.should == []
+    end
+
+    # 2 should still be in the pond
+    pond.available.should == [2]
   end
 end
