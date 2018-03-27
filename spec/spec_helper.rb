@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'pond'
 
 RSpec.configure do |config|

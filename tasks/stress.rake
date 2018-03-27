@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'pond'
 
 desc "Stress test the Pond gem to check for concurrency issues."
@@ -9,7 +11,7 @@ task :stress do
 
   pond = Pond.new(detach_if: detach_if) do
     raise "Bad Instantiation!" if rand < 0.05
-    "Good!"
+    "Good!".dup
   end
 
   threads =
