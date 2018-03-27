@@ -105,13 +105,13 @@ describe Pond, "configuration" do
 
     pond.size.should == 1
     pond.available.should == []
-    pond.allocated.should == {t => 1}
+    pond.allocated.should == {nil => {t => 1}}
 
     q2.push nil
     t.join
 
     pond.size.should == 0
     pond.available.should == []
-    pond.allocated.should == {}
+    pond.allocated.should == {nil => {}}
   end
 end

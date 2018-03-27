@@ -20,23 +20,51 @@ describe Pond, "#checkout" do
 
     pond.checkout do |i|
       pond.available.should == []
-      pond.allocated.should == {Thread.current => 1}
+      pond.allocated.should == {nil => {Thread.current => 1}}
       i.should == 1
     end
 
     pond.available.should == [1]
-    pond.allocated.should == {}
+    pond.allocated.should == {nil => {}}
     pond.size.should == 1
 
     pond.checkout do |i|
       pond.available.should == []
-      pond.allocated.should == {Thread.current => 1}
+      pond.allocated.should == {nil => {Thread.current => 1}}
       i.should == 1
     end
 
     pond.available.should == [1]
-    pond.allocated.should == {}
+    pond.allocated.should == {nil => {}}
     pond.size.should == 1
+  end
+
+  it "should checkout objects to the given scope, if any" do
+    int = 0
+    pond = Pond.new(eager: true) { int += 1 }
+    pond.size.should == 10
+    pond.available.should == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+    pond.checkout do |a|
+      pond.checkout do |b|
+        pond.checkout(scope: :blah) do |c|
+          pond.checkout(scope: :blah) do |d|
+            pond.checkout do |e|
+              [a, b, c, d, e].should == [1, 1, 2, 2, 1]
+            end
+          end
+        end
+      end
+    end
+
+    pond.available.should == [3, 4, 5, 6, 7, 8, 9, 10, 2, 1]
+  end
+
+  it "should throw an error if the passed scope is not frozen" do
+    int = 0
+    pond = Pond.new(eager: true) { int += 1 }
+
+    proc { pond.checkout(scope: String.new) }.should raise_error RuntimeError, "Can't checkout with a non-frozen scope"
   end
 
   it "should not instantiate objects in excess of the specified maximum_size" do
@@ -70,19 +98,19 @@ describe Pond, "#checkout" do
     q1.pop
 
     pond.size.should == 1
-    pond.allocated.should == {t => 1}
+    pond.allocated.should == {nil => {t => 1}}
     pond.available.should == []
 
     pond.checkout { |i| i.should == 2 }
 
     pond.size.should == 2
-    pond.allocated.should == {t => 1}
+    pond.allocated.should == {nil => {t => 1}}
     pond.available.should == [2]
 
     q2.push nil
     t.join
 
-    pond.allocated.should == {}
+    pond.allocated.should == {nil => {}}
     pond.available.should == [2, 1]
   end
 
@@ -108,7 +136,7 @@ describe Pond, "#checkout" do
   end
 
   it "should yield an object to only one thread when many are waiting" do
-    pond = Pond.new(:maximum_size => 1) { 2 }
+    pond = Pond.new(:maximum_size => 1, timeout: 360000) { 2 }
 
     q1, q2, q3 = Queue.new, Queue.new, Queue.new
 
@@ -227,7 +255,7 @@ describe Pond, "#checkout" do
       end
     end.should raise_error RuntimeError, "Blah!"
 
-    pond.allocated.should == {}
+    pond.allocated.should == {nil => {}}
     pond.available.should == [1]
   end
 
@@ -271,7 +299,7 @@ describe Pond, "#checkout" do
     pond.checkout { |i| i.should == 1 }
 
     pond.size.should == 1
-    pond.allocated.should == {}
+    pond.allocated.should == {nil => {}}
     pond.available.should == [1]
 
     error = true
@@ -280,6 +308,7 @@ describe Pond, "#checkout" do
       i.should == 1
 
       t = Thread.new do
+        Thread.current.report_on_exception = false
         pond.checkout{}
       end
 
@@ -287,7 +316,7 @@ describe Pond, "#checkout" do
     end
 
     pond.size.should == 1
-    pond.allocated.should == {}
+    pond.allocated.should == {nil => {}}
     pond.available.should == [1]
 
     error = false
@@ -303,7 +332,7 @@ describe Pond, "#checkout" do
     end
 
     pond.size.should == 2
-    pond.allocated.should == {}
+    pond.allocated.should == {nil => {}}
     pond.available.should == [2, 1]
   end
 
@@ -347,7 +376,7 @@ describe Pond, "#checkout" do
 
     q1.pop
     pond.available.should == []
-    pond.allocated.should == {t => 1}
+    pond.allocated.should == {nil => {t => 1}}
 
     # t is in the middle of invoking detach_if, we should still be able to
     # instantiate new objects and check them out.
@@ -392,6 +421,6 @@ describe Pond, "#checkout" do
     checked_out.should == 2
 
     pond.available.should == [3, 4, 5, 1]
-    pond.allocated.should == {}
+    pond.allocated.should == {nil => {}}
   end
 end

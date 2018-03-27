@@ -25,7 +25,7 @@ describe Pond::Wrapper do
     id = @wrapper.id
 
     @pond.size.should == 1
-    @pond.allocated.should == {}
+    @pond.allocated.should == {nil => {}}
     @pond.available.map(&:id).should == [id]
   end
 
@@ -51,7 +51,7 @@ describe Pond::Wrapper do
 
       @wrapper.id.should == id1
 
-      @pond.allocated.keys.should == [Thread.current, t]
+      @pond.allocated[nil].keys.should == [Thread.current, t]
       @pond.available.should == []
 
       q2.push nil
@@ -61,7 +61,7 @@ describe Pond::Wrapper do
       @wrapper.id.should == id1
     end
   
-    @pond.allocated.should == {}
+    @pond.allocated.should == {nil => {}}
     @pond.available.map(&:id).should == [id2, id1]
   end
 end

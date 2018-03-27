@@ -7,32 +7,41 @@ class Pond
 
   attr_reader :allocated, :available, :timeout, :collection, :maximum_size, :detach_if
 
-  def initialize(options = {}, &block)
+  DEFAULT_DETACH_IF = lambda { |_| false }
+
+  def initialize(
+    maximum_size: 10,
+    eager: false,
+    timeout: 1,
+    collection: :queue,
+    detach_if: DEFAULT_DETACH_IF,
+    &block
+  )
     @block   = block
     @monitor = Monitor.new
     @cv      = Monitor::ConditionVariable.new(@monitor)
 
-    maximum_size = options.fetch :maximum_size, 10
-
     @allocated = {}
-    @available = Array.new(options[:eager] ? maximum_size : 0, &block)
+    @available = Array.new(eager ? maximum_size : 0, &block)
 
-    self.timeout      = options.fetch :timeout, 1
-    self.collection   = options.fetch :collection, :queue
-    self.detach_if    = options.fetch :detach_if, lambda { |_| false }
+    self.timeout      = timeout
+    self.collection   = collection
+    self.detach_if    = detach_if
     self.maximum_size = maximum_size
   end
 
-  def checkout(&block)
-    if object = current_object
+  def checkout(scope: nil, &block)
+    raise "Can't checkout with a non-frozen scope" unless scope.frozen?
+
+    if object = current_object(scope: scope)
       yield object
     else
-      checkout_object(&block)
+      checkout_object(scope: scope, &block)
     end
   end
 
   def size
-    sync { @available.size + @allocated.size }
+    sync { @allocated.inject(@available.size){|sum, (h, k)| sum + k.length} }
   end
 
   def timeout=(timeout)
@@ -60,22 +69,22 @@ class Pond
 
   private
 
-  def checkout_object
-    lock_object
-    yield current_object
+  def checkout_object(scope:)
+    lock_object(scope: scope)
+    yield current_object(scope: scope)
   ensure
-    unlock_object
+    unlock_object(scope: scope)
   end
 
-  def lock_object
+  def lock_object(scope:)
     deadline = Time.now + @timeout
 
-    until current_object
+    until current_object(scope: scope)
       raise Timeout if (time_left = deadline - Time.now) < 0
 
       sync do
         if object = get_object(time_left)
-          set_current_object(object)
+          set_current_object(object, scope: scope)
         end
       end
     end
@@ -85,16 +94,18 @@ class Pond
     # call the instantiation block while we have the lock, since it may take a
     # long time to return. So, we set the checked-out object to the block as a
     # signal that it needs to be called.
-    set_current_object(@block.call) if current_object == @block
+    if current_object(scope: scope) == @block
+      set_current_object(@block.call, scope: scope)
+    end
   end
 
-  def unlock_object
+  def unlock_object(scope:)
     object               = nil
     detach_if            = nil
     should_return_object = nil
 
     sync do
-      object               = current_object
+      object               = current_object(scope: scope)
       detach_if            = self.detach_if
       should_return_object = object && object != @block && size <= maximum_size
     end
@@ -105,7 +116,7 @@ class Pond
     ensure
       sync do
         @available << object if detach_check_finished && should_return_object
-        @allocated.delete(Thread.current)
+        @allocated[scope].delete(Thread.current)
         @cv.signal
       end
     end
@@ -122,12 +133,12 @@ class Pond
     end
   end
 
-  def current_object
-    sync { @allocated[Thread.current] }
+  def current_object(scope:)
+    sync { (@allocated[scope] ||= {})[Thread.current] }
   end
 
-  def set_current_object(object)
-    sync { @allocated[Thread.current] = object }
+  def set_current_object(object, scope:)
+    sync { (@allocated[scope] ||= {})[Thread.current] = object }
   end
 
   def sync(&block)
