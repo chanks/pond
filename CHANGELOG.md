@@ -1,3 +1,9 @@
+### 0.3.0 (2018-03-27)
+
+*   Support scoped checkouts.
+
+*   Use frozen string literals.
+
 ### 0.2.0 (2016-02-05)
 
 *   Add an option for a detach_if callable, which can contain logic to
