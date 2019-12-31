@@ -21,7 +21,7 @@ class Pond
   )
     @block   = block
     @monitor = Monitor.new
-    @cv      = Monitor::ConditionVariable.new(@monitor)
+    @cv      = MonitorMixin::ConditionVariable.new(@monitor)
 
     @allocated = {}
     @available = Array.new(eager ? maximum_size : 0, &block)
