@@ -1,3 +1,7 @@
+### 0.4.0 (2019-12-31)
+
+*   Add support for Ruby 2.7. (gekola)
+
 ### 0.3.0 (2018-03-27)
 
 *   Support scoped checkouts.
