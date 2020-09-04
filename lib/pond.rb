@@ -156,12 +156,12 @@ class Pond
   class Wrapper < BasicObject
     attr_reader :pond
 
-    def initialize(*args, &block)
-      @pond = ::Pond.new(*args, &block)
+    def initialize(*args, **kwargs, &block)
+      @pond = ::Pond.new(*args, **kwargs, &block)
     end
 
-    def method_missing(*args, &block)
-      @pond.checkout { |object| object.send(*args, &block) }
+    def method_missing(*args, **kwargs, &block)
+      @pond.checkout { |object| object.public_send(*args, **kwargs, &block) }
     end
   end
 end
