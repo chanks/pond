@@ -1,3 +1,7 @@
+### 0.5.0 (2020-09-04)
+
+*   Silence warnings on Ruby 2.7 (boof)
+
 ### 0.4.0 (2019-12-31)
 
 *   Add support for Ruby 2.7. (gekola)
